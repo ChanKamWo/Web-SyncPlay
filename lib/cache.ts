@@ -1,21 +1,7 @@
-import { createClient } from "redis"
-import { getRedisURL } from "./env"
+import Redis from "ioredis-mock"
 import { RoomState } from "./types"
 
-const client = createClient({
-  url: getRedisURL(),
-})
-
-;(async () => {
-  await client.connect()
-})()
-
-client.on("reconnecting", () => {
-  console.log("Trying to reconnect to redis server ...")
-})
-client.on("error", (error) => {
-  console.error("Failed to contact redis server due to:", error)
-})
+const client = new Redis()
 
 export const getRoom = async (roomId: string) => {
   const data = await client.get("room:" + roomId)
@@ -31,23 +17,23 @@ export const roomExists = async (roomId: string) => {
 }
 
 export const setRoom = async (roomId: string, data: RoomState) => {
-  if (!(await client.sIsMember("rooms", roomId))) {
-    await client.sAdd("rooms", roomId)
+  if (!(await client.sismember("rooms", roomId))) {
+    await client.sadd("rooms", roomId)
   }
   return await client.set("room:" + roomId, JSON.stringify(data))
 }
 
 export const deleteRoom = async (roomId: string) => {
-  await client.sRem("rooms", roomId)
+  await client.srem("rooms", roomId)
   return await client.del("room:" + roomId)
 }
 
 export const listRooms = async () => {
-  return await client.sMembers("rooms")
+  return await client.smembers("rooms")
 }
 
 export const countRooms = async () => {
-  return await client.sCard("rooms")
+  return await client.scard("rooms")
 }
 
 export const countUsers = async () => {
@@ -67,5 +53,5 @@ export const decUsers = async () => {
 }
 
 export const wipeCache = async () => {
-  return await client.flushAll()
+  return await client.flushall()
 }
